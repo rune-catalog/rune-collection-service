@@ -1,0 +1,28 @@
+{
+  "name": "rune-collection-service",
+  "version": "0.0.1",
+  "description": "A service to track collections of MTG cards",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rune-catalog/rune-collection-service.git"
+  },
+  "author": "Sam Noedel <sam.noedel@gmail.com>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/rune-catalog/rune-collection-service/issues"
+  },
+  "homepage": "https://github.com/rune-catalog/rune-collection-service#readme",
+  "devDependencies": {
+    "nodemon": "^1.11.0"
+  },
+  "dependencies": {
+    "mongodb": "^2.2.10",
+    "restify": "^4.1.1",
+    "slug": "^0.9.1"
+  }
+}
