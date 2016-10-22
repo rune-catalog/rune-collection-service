@@ -14,7 +14,7 @@ server.use(restify.bodyParser({
 server.get('/collection/:user/:collection', (req, res, next) => {
   let db
 
-  MongoClient.connect('mongodb://localhost:27017/rune')
+  MongoClient.connect('mongodb://collection-db/rune')
     .then(database => {
       db = database
       let collection = db.collection('collections')
@@ -48,7 +48,7 @@ server.post('/collection/:user', (req, res, next) => {
 
   res.json(model)
 
-  MongoClient.connect('mongodb://localhost:27017/rune')
+  MongoClient.connect('mongodb://collection-db/rune')
     .then(database => {
       db = database
       let collection = db.collection('collections')
@@ -64,7 +64,7 @@ server.post('/collection/:user', (req, res, next) => {
 server.patch('/collection/:user/:collection', (req, res, next) => {
   let db, collection
 
-  MongoClient.connect('mongodb://localhost:27017/rune')
+  MongoClient.connect('mongodb://collection-db/rune')
     .then(database => {
       db = database
       collection = db.collection('collections')
