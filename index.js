@@ -3,13 +3,14 @@
 const restify = require('restify'),
   slug = require('slug'),
   MongoClient = require('mongodb').MongoClient,
-  R = require('ramda')
+  R = require('ramda');
 
-let server = restify.createServer()
+let server = restify.createServer();
 
+server.use(restify.CORS());
 server.use(restify.bodyParser({
   mapParams: false
-}))
+}));
 
 server.get('/collection/:user/:collection', (req, res, next) => {
   let db
@@ -32,6 +33,24 @@ server.get('/collection/:user/:collection', (req, res, next) => {
       db.close()
       next()
     })
+})
+
+server.get('/collection/:user', (req, res, next) => {
+  let db;
+
+  MongoClient.connect('mongodb://collection-db/rune')
+    .then(database => {
+      db = database;
+      return db.collection('collections').find(
+        { user: req.params.user },
+        { _id: 0 }).toArray();
+    })
+    .then(docs => {
+      res.json(docs);
+      next();
+    })
+    .catch(err => next(err))
+    .then(() => db.close());
 })
 
 server.post('/collection/:user', (req, res, next) => {
