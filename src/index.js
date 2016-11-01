@@ -18,6 +18,17 @@ server.on('uncaughtException', (req, res, route, err) => {
   res.send(err);
 });
 
+server.on('after', (req, res, route, err) => {
+  if (err) {
+    if (err.message) {
+      console.error(err.message);
+      console.error(err.stack);
+    } else {
+      console.error(err);
+    }
+  }
+});
+
 server.listen(8080, () => {
   console.log(`${server.name} listening on ${server.url}`);
 });

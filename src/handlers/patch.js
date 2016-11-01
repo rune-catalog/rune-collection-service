@@ -4,72 +4,77 @@ const MongoClient = require('mongodb').MongoClient,
   R = require('ramda');
 
 module.exports = function collectionPatchHandler(req, res, next) {
-  let db, collection;
+  let db, collection, username = req.params.user, slug = req.params.collection;
 
   MongoClient.connect('mongodb://collection-db/rune')
     .then(database => {
       db = database;
       collection = db.collection('collections');
     })
-    .then(() => {
-      let existing = collection.findOne({
-        user: req.params.user,
-        slug: req.params.collection
-      }, {
-        _id: 0,
-        cards: 1
-      }).then(doc => doc.cards);
-
-      let updated = R.map(card => {
-        let model = {
-          name: card.name,
-          quantity: card.quantity
-        };
-        if (card.set) model.set = card.set;
-        return model;
-      }, req.body);
-
-      return Promise.all([
-        existing,
-        updated
-      ]);
-    })
-    .then(state => {
-      let [ existing, updated ] = state,
-        inserts = [ ],
-        deletes = [ ],
-        updates = [ ];
-
-      R.forEach(card => {
-        if (card.quantity <= 0) {
-          deletes.push(card);
-        } else if (!R.any((a, b) => a.name === b.name), existing) {
-          inserts.push(card);
-        } else {
-          updates.push(card);
-        }
-      }, updated);
-
-      return Promise.all([
-        Promise.resolve(inserts),
-        Promise.resolve(updates),
-        Promise.resolve(deletes)
-      ]);
-    })
-    .then(state => {
-      let [ inserts, updates, deletes ] = state;
-
-      let insertPromise = collection.insertMany(inserts);
-      let updatePromise = collection.updateMany(updates);
-      let deletePromise = collection.deleteMany();
-
-      return Promise.all([
-        insert,
-        update,
-        del
-      ]);
-    })
+    .then(() => resolveExistingAndUpdated(collection, username, slug, req.body))
+    .then(resolveDbChanges)
+    .then(state => executeDbChanges(collection, state, username, slug))
+    .then(() => res.send(200))
     .then(() => next())
-    .catch(next)
-    .then(db.close);
+    .catch(err => next(err))
+    .then(() => db.close());
 };
+
+function resolveExistingAndUpdated(dbCollection, username, slug, requestBody) {
+  let existing = dbCollection.findOne({
+    user: username,
+    slug
+  }).then(doc => doc.cards);
+
+  let updated = R.map(card => ({
+      name: card.name,
+      quantity: card.quantity
+  }), requestBody);
+
+  return Promise.all([
+    existing,
+    Promise.resolve(updated)
+  ]);
+}
+
+function resolveDbChanges(state) {
+  let [ existing, updated ] = state,
+    inserts = [ ],
+    deletes = [ ],
+    updates = [ ];
+
+  R.forEach(card => {
+    if (card.quantity <= 0) {
+      deletes.push(card);
+    } else if (!R.any(R.propEq('name', card.name), existing)) {
+      inserts.push(card);
+    } else {
+      updates.push(card);
+    }
+  }, updated);
+
+  return [ existing, inserts, updates, deletes ];
+}
+
+function executeDbChanges(dbCollection, state, username, slug) {
+  let [ existing, inserts, updates, deletes ] = state;
+
+  // Filter out deleted cards
+  existing = R.filter(card => !R.any(c => c.name === card.name, deletes), existing);
+
+  // Update existing cards
+  R.forEach(update => {
+    let obj = R.find(R.propEq('name', update.name), existing);
+    obj.quantity = update.quantity;
+  }, updates);
+
+  // Add new cards
+  R.forEach(card => existing.push(card), inserts);
+
+  return dbCollection.updateOne({
+    user: username,
+    slug
+  }, {
+    $set: { cards: existing }
+  });
+}
