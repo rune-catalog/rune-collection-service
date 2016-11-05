@@ -18,6 +18,6 @@ module.exports = function collectionGetHandler(req, res, next) {
       else res.json(docs);
       next();
     })
-    .catch(next)
+    .catch(err => next(err))
     .then(() => db.close());
 };
