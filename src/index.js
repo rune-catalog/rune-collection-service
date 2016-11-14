@@ -29,6 +29,6 @@ server.on('after', (req, res, route, err) => {
   }
 });
 
-server.listen(8080, () => {
+server.listen(80, () => {
   console.log(`${server.name} listening on ${server.url}`);
 });
