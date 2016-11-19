@@ -8,6 +8,7 @@ server.use(restify.bodyParser({
   mapParams: false
 }));
 
+server.get('/status', require('./handlers/status'));
 server.get('/collection/:user', require('./handlers/browse'));
 server.get('/collection/:user/:collection', require('./handlers/get'));
 server.post('/collection/:user', require('./handlers/post'));
@@ -29,6 +30,6 @@ server.on('after', (req, res, route, err) => {
   }
 });
 
-server.listen(80, () => {
+server.listen(8080, () => {
   console.log(`${server.name} listening on ${server.url}`);
 });

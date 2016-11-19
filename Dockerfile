@@ -1,16 +1,30 @@
 FROM node:6-alpine
 
-# Image configuration
-ENV NODE_ENV="production"
-EXPOSE 80
+# Set env vars
+ENV \
+  NODE_ENV=production \
+  CONTAINERPILOT_VERSION=2.1.2 \
+  CONTAINERPILOT=file:///etc/containerpilot.json
 
-# Create application directory
-RUN [ "mkdir", "-p", "/app/src" ]
-WORKDIR /app
+# Install curl
+RUN apk update && apk add curl
 
-# Install npm packages
-COPY [ "package.json", "/app" ]
-COPY [ "src", "/app/src/" ]
-RUN [ "npm", "install" ]
+# Install ContainerPilot
+RUN curl -Lso /tmp/containerpilot.tar.gz \
+  "https://github.com/joyent/containerpilot/releases/download/${CONTAINERPILOT_VERSION}/containerpilot-${CONTAINERPILOT_VERSION}.tar.gz" \
+  && tar -xzf /tmp/containerpilot.tar.gz -C /usr/local/bin \
+  && rm /tmp/containerpilot.tar.gz
+COPY containerpilot.json /etc/containerpilot.json
 
-ENTRYPOINT [ "npm", "start" ]
+# Install app
+RUN [ "mkdir", "-p", "/usr/local/app" ]
+COPY [ "package.json", "/usr/local/app" ]
+COPY [ ".", "/usr/local/app/" ]
+WORKDIR /usr/local/app
+RUN npm install
+
+# Expose ports
+EXPOSE 8080
+
+# Start application
+CMD [ "/usr/local/bin/containerpilot", "npm", "start" ]

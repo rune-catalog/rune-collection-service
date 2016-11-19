@@ -1,0 +1,22 @@
+{
+  "consul": "consul:8500",
+  "stopTimeout": 5,
+  "services": [
+    {
+      "name": "Rune Collections",
+      "port": 8080,
+      "health": [
+        "/usr/bin/curl",
+        "--fail",
+        "-s",
+        "http://localhost:8080/status"
+      ],
+      "interfaces": [
+        "eth0"
+      ],
+      "poll": 10,
+      "ttl": 30
+    }
+  ],
+  "backends": [ ]
+}
