@@ -1,40 +1,30 @@
 'use strict';
 
-const MongoClient = require('mongodb').MongoClient,
-  R = require('ramda');
+const Collection = require('../model/collection');
 
 module.exports = function collectionBrowseHandler(req, res, next) {
-  let db, collection;
-
-  MongoClient.connect('mongodb://collection-db/rune')
-    .then(database => {
-      db = database;
-      collection = db.collection('collections');
+  ensureDefaultCollection(req.params.user)
+    .then(() => Collection.find({ user: req.params.user }))
+    .then(docs => {
+      res.json(docs);
+      next();
     })
-    .then(() => ensureDefaultCollection(collection, req.params.user))
-    .then(() => getAllCollections(collection, req.params.user))
-    .then(res.json.bind(res))
-    .then(next)
-    .catch(next)
-    .then(() => db.close());
+    .catch(err => next(err));
 };
 
-function ensureDefaultCollection(collection, username) {
-  return collection.findOne({ user: username, slug: 'default' })
-    .then(doc => {
-      if (doc) return;
-      return collection.insertOne({
-        name: 'Default',
-        slug: 'default',
-        user: username,
-        cards: [ ]
-      });
-    });
+function ensureDefaultCollection(user) {
+  let query = { user: user, slug: 'default' };
+  return Collection.findOne(query)
+    .then(doc => doc || createDefaultCollection(user));
 }
 
-function getAllCollections(collection, username) {
-  return collection.find(
-    { user: username },
-    { _id: 0 }
-  ).toArray();
+function createDefaultCollection(user) {
+  return Collection.create([
+    {
+      name: 'Default',
+      slug: 'default',
+      user,
+      cards: [ ]
+    }
+  ]);
 }
