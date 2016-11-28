@@ -12,7 +12,7 @@ exports.boot = function boot() {
   return autopilot(ContainerPilot)
     .then(connectionFactory.create)
     .then(() => server)
-    .then(serverApi.initHandlers)
     .then(serverApi.initMiddleware)
+    .then(serverApi.initHandlers)
     .then(serverApi.initEvents);
 };

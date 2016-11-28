@@ -1,26 +1,43 @@
 'use strict';
 
-const MongoClient = require('mongodb').MongoClient,
-  slug = require('slug');
+const mongoose = require('mongoose'),
+  Collection   = require('../model/collection'),
+  restify      = require('restify'),
+  slug         = require('slug');
 
 module.exports = function collectionPostHandler(req, res, next) {
-  let db;
-  let collectionSlug = slug(req.body.name, { lower: true });
-  let model = {
-    name: req.body.name,
-    user: req.params.user,
-    slug: collectionSlug,
-    cards: [ ]
-  };
+  let name = req.body.name,
+    user = req.params.user;
 
-  res.json(model);
-
-  MongoClient.connect('mongodb://collection-db/rune')
-    .then(database => {
-      db = database
-      return db.collection('collections').insertOne(model);
+  rejectIfExists(name)
+    .then(() => generateSlug(name))
+    .then(slug => createCollection(name, slug, user))
+    .then(c => {
+      res.json(c);
+      next();
     })
-    .then(() => next())
-    .catch(next)
-    .then(() => db.close());
+    .catch(err => next(err));
 };
+
+function rejectIfExists(name) {
+  return Collection.findOne({ name: name })
+    .then(doc => {
+      if (doc) throw new restify.ConflictError();
+    });
+}
+
+function generateSlug(name) {
+  let collectionSlug = slug(name, { lower: true });
+  let re = new RegExp(`^${collectionSlug}`);
+
+  return Collection.count({ slug: re })
+    .then(count => {
+      if (count === 0) return collectionSlug;
+      return `${collectionSlug}-${count}`;
+    });
+}
+
+function createCollection(name, slug, user) {
+  let collection = new Collection({ name, slug, user });
+  return collection.save();
+}

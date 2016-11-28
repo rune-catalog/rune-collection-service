@@ -1,23 +1,19 @@
 'use strict';
 
-const MongoClient = require('mongodb').MongoClient;
+const restify   = require('restify'),
+  ensureDefault = require('../lib/ensure-default'),
+  Collection    = require('../model/collection');
 
 module.exports = function collectionGetHandler(req, res, next) {
-  let db;
-
-  MongoClient.connect('mongodb://collection-db/rune')
-    .then(database => {
-      db = database;
-      return db.collection('collections').findOne(
-        { slug: req.params.collection },
-        { _id: 0 }
-      );
+  ensureDefault.ensureDefaultCollection(req.params.user)
+    .then(() => {
+      let query = { user: req.params.user, slug: req.params.collection };
+      Collection.findOne(query)
+        .then(doc => {
+          if (!doc) return next(new restify.NotFoundError())
+          res.json(doc);
+          next();
+        });
     })
-    .then(docs => {
-      if (!docs) res.send(404);
-      else res.json(docs);
-      next();
-    })
-    .catch(err => next(err))
-    .then(() => db.close());
+    .catch(err => next(err));
 };
